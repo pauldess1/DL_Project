@@ -90,7 +90,7 @@ class MLP(object):
     def train_epoch(self, X, y, learning_rate=0.001):
         y_pred = self.predict(X)
         loss = self.loss(y, y_pred)
-        grad_loss_output = self.derivative(y_pred, y)
+        grad_loss_output = self.loss_derivative(y, y_pred)
         grad_weights_output = np.dot(self.relu_derivative(np.dot(X, self.weights_hidden) + self.bias_hidden).T, grad_loss_output)
         grad_bias_output = np.sum(grad_loss_output, axis=0)
 
@@ -102,7 +102,7 @@ class MLP(object):
         self.bias_output -= learning_rate * grad_bias_output
         self.weights_hidden -= learning_rate * grad_weights_hidden
         self.bias_hidden -= learning_rate * grad_bias_hidden
-        
+
         return loss
 
     def relu(self, x):
@@ -115,27 +115,28 @@ class MLP(object):
     def relu_derivative(self, x):
         return np.where(x <= 0, 0, 1)
 
-    def loss(self,y_true, y_pred):
-        num_samples = len(y_true)
+    def loss(self, y_true, y_pred):
         num_classes = y_pred.shape[1]
-        y_one_hot = np.zeros((num_samples, num_classes))
-        y_one_hot[np.arange(num_samples), y_true] = 1
-        loss = -np.sum(y_one_hot * np.log(y_pred)) / num_samples
-        return loss
+        y_pred = np.clip(y_pred, 1e-15, 1 - 1e-15)
+        y_true_one_hot = self.to_one_hot(y_true, num_classes)
+        loss = -y_true_one_hot * np.log(y_pred)
 
-    def derivative(self, y_pred, y_true):
+        return np.sum(loss) / len(y_true)
 
-        num_samples = len(y_true)
-        num_classes = y_pred.shape[1] if len(y_pred.shape) > 1 else 1  # Handle cases of 1D y_pred
-
-        if num_classes > 1:
-            y_one_hot = np.zeros((num_samples, num_classes))
-            y_one_hot[np.arange(num_samples), y_true] = 1
-            grad_loss_output = -(y_one_hot - y_pred) / num_samples
-        else:
-            grad_loss_output = -(y_true - y_pred) / num_samples
-        
-        return grad_loss_output
+    def loss_derivative(self, y_true, y_pred):
+        num_classes = y_pred.shape[1]
+        y_true_one_hot = self.to_one_hot(y_true, num_classes)
+    
+        y_pred = np.clip(y_pred, 1e-15, 1 - 1e-15)
+        derivative = -y_true_one_hot / y_pred
+    
+        return derivative
+    
+    def to_one_hot(self, labels, num_classes):
+        num_samples = len(labels)
+        one_hot_labels = np.zeros((num_samples, num_classes))
+        one_hot_labels[np.arange(num_samples), labels] = 1
+        return one_hot_labels
 
 
 def plot(epochs, train_accs, val_accs, pdf):

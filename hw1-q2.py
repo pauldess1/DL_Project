@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 
 import utils
 
-
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Q2.1
 class LogisticRegression(nn.Module):
 
@@ -26,9 +26,9 @@ class LogisticRegression(nn.Module):
         pytorch to make weights and biases, have a look at
         https://pytorch.org/docs/stable/nn.html
         """
-        super().__init__()
-        # In a pytorch module, the declarations of layers needs to come after
-        # the super __init__ line, otherwise the magic doesn't work.
+        super(LogisticRegression, self).__init__()
+        self.layer = nn.Linear(n_features, n_classes)
+        self.activation = nn.Softmax(dim=1)
 
     def forward(self, x, **kwargs):
         """
@@ -44,7 +44,9 @@ class LogisticRegression(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        Z = self.layer(x)
+        P = self.activation(Z)
+        return P
 
 
 # Q2.2
@@ -79,25 +81,16 @@ class FeedforwardNetwork(nn.Module):
         raise NotImplementedError
 
 
-def train_batch(X, y, model, optimizer, criterion, **kwargs):
-    """
-    X (n_examples x n_features)
-    y (n_examples): gold labels
-    model: a PyTorch defined model
-    optimizer: optimizer used in gradient step
-    criterion: loss function
-
-    To train a batch, the model needs to predict outputs for X, compute the
-    loss between these predictions and the "gold" labels y using the criterion,
-    and compute the gradient of the loss with respect to the model parameters.
-
-    Check out https://pytorch.org/docs/stable/optim.html for examples of how
-    to use an optimizer object to update the parameters.
-
-    This function should return the loss (tip: call loss.item()) to get the
-    loss as a numerical value that is not part of the computation graph.
-    """
-    raise NotImplementedError
+def train_batch(X, y, model, optimizer, criterion):
+    model.train()
+    X = torch.FloatTensor(X)
+    y = torch.LongTensor(y)
+    optimizer.zero_grad()
+    yhat = model(X)
+    loss = criterion(yhat, y)
+    loss.backward()
+    optimizer.step()
+    return loss.item()
 
 
 def predict(model, X):
