@@ -1,5 +1,5 @@
 # Deep Learning - Homework 1
-Linear classifiers and neural networks first from scratch and then using Pytorch for medical image classification in Homework 1 for the Deep Learning course at IST (2023-24).
+Implemented linear classifiers and neural networks first from scratch and then using Pytorch for medical image classification in Homework 1 for the Deep Learning course at IST (2023-24).
 
 ## Deadline
 Friday, December 15, 2023.
