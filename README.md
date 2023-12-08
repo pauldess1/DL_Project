@@ -1,4 +1,5 @@
-# Deep Learning (IST, 2023-24) - Homework 1
+# Deep Learning - Homework 1
+# Implemented linear classifiers and neural networks for medical image classification in Homework 1 for the Deep Learning course at IST (2023-24).
 
 ## Deadline
 Friday, December 15, 2023.
