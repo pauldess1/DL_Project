@@ -8,8 +8,12 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from matplotlib import pyplot as plt
+import time
 
 import utils
+
+
+from numpy import load
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Q2.1
@@ -67,8 +71,26 @@ class FeedforwardNetwork(nn.Module):
         includes modules for several activation functions and dropout as well.
         """
         super().__init__()
-        # Implement me!
-        raise NotImplementedError
+        self.layers = layers
+
+        self.input_layer = nn.Linear(n_features, hidden_size)
+
+        self.hidden_layers = nn.ModuleList([
+            nn.Linear(hidden_size, hidden_size) for _ in range(layers - 1)])
+        
+        self.output_layer = nn.Linear(hidden_size, n_classes)
+        
+        if activation_type == 'relu':
+            self.activation = nn.ReLU()
+        elif activation_type == 'sigmoid':
+            self.activation = nn.Sigmoid()
+        elif activation_type == 'tanh':
+            self.activation = nn.Tanh()
+        else:
+            raise ValueError("Unsupported activation function.")
+
+        self.dropout = nn.Dropout(p=dropout)
+
 
     def forward(self, x, **kwargs):
         """
@@ -78,7 +100,19 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        x = self.input_layer(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+        
+        for layer in self.hidden_layers:
+            x = layer(x)
+            x = self.activation(x)
+            x = self.dropout(x)
+        
+        x = self.output_layer(x)
+        
+        return x
+     
 
 
 def train_batch(X, y, model, optimizer, criterion):
@@ -140,13 +174,13 @@ def main():
     parser.add_argument('-epochs', default=20, type=int,
                         help="""Number of epochs to train for. You should not
                         need to change this value for your plots.""")
-    parser.add_argument('-batch_size', default=1, type=int,
+    parser.add_argument('-batch_size', default=16, type=int,
                         help="Size of training batch.")
-    parser.add_argument('-learning_rate', type=float, default=0.01)
+    parser.add_argument('-learning_rate', type=float, default=0.1)
     parser.add_argument('-l2_decay', type=float, default=0)
-    parser.add_argument('-hidden_size', type=int, default=100)
-    parser.add_argument('-layers', type=int, default=1)
-    parser.add_argument('-dropout', type=float, default=0.3)
+    parser.add_argument('-hidden_size', type=int, default=200)
+    parser.add_argument('-layers', type=int, default=2)
+    parser.add_argument('-dropout', type=float, default=0)
     parser.add_argument('-activation',
                         choices=['tanh', 'relu'], default='relu')
     parser.add_argument('-optimizer',
@@ -157,6 +191,7 @@ def main():
 
     data = utils.load_oct_data()
     dataset = utils.ClassificationDataset(data)
+    start_time = time.time()
     train_dataloader = DataLoader(
         dataset, batch_size=opt.batch_size, shuffle=True, generator=torch.Generator().manual_seed(42))
 
@@ -178,6 +213,7 @@ def main():
             opt.activation,
             opt.dropout
         )
+
 
     # get an optimizer
     optims = {"adam": torch.optim.Adam, "sgd": torch.optim.SGD}
@@ -233,6 +269,9 @@ def main():
         "Train Loss": train_losses,
         "Valid Loss": valid_losses,
     }
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Le temps d'exécution de la méthode forward est de : {execution_time} secondes")
     # Choose ylim based on model since logistic regression has higher loss
     if opt.model == "logistic_regression":
         ylim = (0., 1.6)
